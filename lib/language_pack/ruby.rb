@@ -19,6 +19,9 @@ class LanguagePack::Ruby < LanguagePack::Base
   RBX_BASE_URL         = "http://binaries.rubini.us/heroku"
   NODE_BP_PATH         = "vendor/node/bin"
 
+  BOWER_BASE_URL       = "http://heroku-buildpack-ruby-bower.s3.amazonaws.com"
+  BOWER_VERSION        = "1.7.7"
+
   # detects if this is a valid Ruby app
   # @return [Boolean] true if it's a Ruby app
   def self.use?
@@ -105,6 +108,10 @@ WARNING
         post_bundler
         create_database_yml
         install_binaries
+
+        install_bower
+        build_bowndler
+
         run_assets_precompile_rake_task
       end
       config_detect
@@ -171,6 +178,32 @@ WARNING
   end
 
   def config_detect
+  end
+
+  def install_bower
+    topic 'Installing bower'
+    # bower_remote_path = "#{BOWER_BASE_URL}/bower-#{BOWER_VERSION}/node_modules.tar.gz"
+    # run("curl #{bower_remote_path} -s -o - | tar xzf -")
+    # unless $?.success?
+    #   error "Can't install Bower #{BOWER_VERSION}."
+    # end
+  end
+
+  def build_bowndler
+    topic 'Installing dependencies via bower'
+
+    pipe('which node')
+    pipe('node -v')
+    pipe('which npm')
+    pipe('npm -v')
+
+    pipe('npm install -g bower@1.8.8')
+    pipe('which bower')
+
+    pipe('bundle exec bowndler bower_configure')
+    pipe('.heroku/node/bin/bower install --config.storage.packages=vendor/bower/packages --config.storage.registry=vendor/bower/registry --config.tmp=vendor/bower/tmp 2>&1')
+    FileUtils.rm_rf("vendor/bower/tmp")
+    pipe('ls vendor/assets')
   end
 
 private
